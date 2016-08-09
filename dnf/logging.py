@@ -50,7 +50,7 @@ def only_once(func):
         setattr(self, func.__name__, noop)
     return swan_song
 
-class MaxLevelFilter(object):
+class _MaxLevelFilter(object):
     def __init__(self, max_level):
         self.max_level = max_level
 
@@ -100,16 +100,13 @@ def _create_filehandler(logfile):
 def _paint_mark(logger):
     logger.log(INFO, dnf.const.LOG_MARKER)
 
-def depr(msg):
-    warnings.warn(msg, dnf.exceptions.DeprecationWarning, 2)
-
 
 class Logging(object):
     def __init__(self):
         self.stdout_handler = self.stderr_handler = None
 
     @only_once
-    def presetup(self):
+    def _presetup(self):
         logging.addLevelName(DDEBUG, "DDEBUG")
         logging.addLevelName(SUBDEBUG, "SUBDEBUG")
         logger_dnf = logging.getLogger("dnf")
@@ -118,7 +115,7 @@ class Logging(object):
         # setup stdout
         stdout = logging.StreamHandler(sys.stdout)
         stdout.setLevel(INFO)
-        stdout.addFilter(MaxLevelFilter(logging.WARNING))
+        stdout.addFilter(_MaxLevelFilter(logging.WARNING))
         logger_dnf.addHandler(stdout)
         self.stdout_handler = stdout
 
@@ -129,8 +126,8 @@ class Logging(object):
         self.stderr_handler = stderr
 
     @only_once
-    def setup(self, verbose_level, error_level, logdir):
-        self.presetup()
+    def _setup(self, verbose_level, error_level, logdir):
+        self._presetup()
         logger_dnf = logging.getLogger("dnf")
 
         # setup file logger
@@ -164,11 +161,11 @@ class Logging(object):
         logger_rpm.addHandler(handler)
         _paint_mark(logger_rpm)
 
-    def setup_from_dnf_conf(self, conf):
+    def _setup_from_dnf_conf(self, conf):
         verbose_level_r = _cfg_verbose_val2level(conf.debuglevel)
         error_level_r = _cfg_err_val2level(conf.errorlevel)
         logdir = conf.logdir
-        return self.setup(verbose_level_r, error_level_r, logdir)
+        return self._setup(verbose_level_r, error_level_r, logdir)
 
 
 class Timer(object):

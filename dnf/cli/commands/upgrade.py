@@ -66,7 +66,8 @@ class UpgradeCommand(commands.Command):
                     try:
                         self.base.package_upgrade(pkg)
                     except dnf.exceptions.MarkingError as e:
-                        logger.info(e)
+                        logger.info(_('No match for argument: %s'),
+                                    self.base.output.term.bold(pkg.location))
                     else:
                         done = True
 
@@ -74,8 +75,9 @@ class UpgradeCommand(commands.Command):
             for pkg_spec in self.opts.pkg_specs:
                 try:
                     self.base.upgrade(pkg_spec)
-                except dnf.exceptions.MarkingError:
-                    logger.info(_('No match for argument: %s'), pkg_spec)
+                except dnf.exceptions.MarkingError as e:
+                    logger.info(_('No match for argument: %s'),
+                                 self.base.output.term.bold(pkg_spec))
                 else:
                     done = True
 

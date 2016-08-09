@@ -74,8 +74,8 @@ class BaseCliTest(support.ResultTestCase):
         self.assertEqual(self._base.downgrade_to.mock_calls,
                          [mock.call('non-existent')])
         self.assertEqual(logger.mock_calls,
-                         [mock.call.info('No package %s%s%s available.', '',
-                                         'non-existent', '')])
+                         [mock.call.info('No package %s available.',
+                                         'non-existent')])
 
     @mock.patch('dnf.cli.cli._', dnf.pycomp.NullTranslations().ugettext)
     def test_downgradePkgs_notinstalled(self, logger):
@@ -87,7 +87,8 @@ class BaseCliTest(support.ResultTestCase):
 
         self.assertEqual(self._base.downgrade_to.mock_calls, [mock.call('lotus')])
         self.assertEqual(logger.mock_calls, [
-            mock.call.info('No match for available package: %s', pkg)] * 2)
+            mock.call.info('Package %s available, but not installed.', 'lotus'),
+            mock.call.info('No match for argument: %s', 'lotus')])
 
     def test_transaction_id_or_offset_bad(self, _):
         """Test transaction_id_or_offset with a bad input."""
@@ -96,7 +97,7 @@ class BaseCliTest(support.ResultTestCase):
 
     def test_transaction_id_or_offset_last(self, _):
         """Test transaction_id_or_offset with the zero offset."""
-        id_or_offset = dnf.cli.cli.BaseCli.transaction_id_or_offset('last')
+        id_or_offset = dnf.cli.cli.BaseCli.transaction_id_or_offset('--last')
         self.assertEqual(id_or_offset, -1)
 
     def test_transaction_id_or_offset_negativeid(self, _):
@@ -106,7 +107,7 @@ class BaseCliTest(support.ResultTestCase):
 
     def test_transaction_id_or_offset_offset(self, _):
         """Test transaction_id_or_offset with an offset."""
-        id_or_offset = dnf.cli.cli.BaseCli.transaction_id_or_offset('last-1')
+        id_or_offset = dnf.cli.cli.BaseCli.transaction_id_or_offset('--last-1')
         self.assertEqual(id_or_offset, -2)
 
     def test_transaction_id_or_offset_positiveid(self, _):
@@ -185,7 +186,7 @@ class CliTest(TestCase):
         self.assertEqual(self.base.repos['one'].sync_strategy,
                          dnf.repo.SYNC_ONLY_CACHE)
 
-@mock.patch('dnf.logging.Logging.setup', new=mock.MagicMock)
+@mock.patch('dnf.logging.Logging._setup', new=mock.MagicMock)
 class ConfigureTest(TestCase):
     def setUp(self):
         self.base = support.MockBase("main")

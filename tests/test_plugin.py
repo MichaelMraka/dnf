@@ -34,10 +34,10 @@ def testconf():
 class PluginTest(tests.support.TestCase):
     def setUp(self):
         self.plugins = dnf.plugin.Plugins()
-        self.plugins.load(testconf(), ())
+        self.plugins._load(testconf(), ())
 
     def tearDown(self):
-        self.plugins.unload()
+        self.plugins._unload()
 
     def test_load(self):
         self.assertLength(self.plugins.plugin_cls, 1)
@@ -47,16 +47,16 @@ class PluginTest(tests.support.TestCase):
 
     def test_runs(self):
         self.assertLength(self.plugins.plugins, 0)
-        self.plugins.run_init(None, None)
+        self.plugins._run_init(None, None)
         self.assertLength(self.plugins.plugins, 1)
-        self.plugins.run_config()
+        self.plugins._run_config()
         lucky = self.plugins.plugins[0]
         self.assertTrue(lucky._config)
 
     def test_config(self):
         base = tests.support.MockBase()
         base.conf.pluginconfpath = ['/wrong', PLUGINS]
-        self.plugins.run_init(base, None)
+        self.plugins._run_init(base, None)
         lucky = self.plugins.plugins[0]
         conf = lucky.read_config(base.conf)
         self.assertTrue(conf.getboolean('main', 'enabled'))
@@ -65,7 +65,7 @@ class PluginTest(tests.support.TestCase):
     def test_disabled(self):
         base = tests.support.MockBase()
         base.conf.pluginconfpath = [PLUGINS]
-        self.plugins.run_init(base, None)
+        self.plugins._run_init(base, None)
         self.assertFalse(any([p.name == 'disabled-plugin'
                               for p in self.plugins.plugins]))
         self.assertLength(self.plugins.plugin_cls, 1)
@@ -74,11 +74,11 @@ class PluginTest(tests.support.TestCase):
 class PluginSkipsTest(tests.support.TestCase):
     def test_skip(self):
         self.plugins = dnf.plugin.Plugins()
-        self.plugins.load(testconf(), ('luck*',))
+        self.plugins._load(testconf(), ('luck*',))
         self.assertLength(self.plugins.plugin_cls, 0)
 
     def tearDown(self):
-        self.plugins.unload()
+        self.plugins._unload()
 
 class PluginNonExistentTest(tests.support.TestCase):
 
@@ -91,7 +91,7 @@ class PluginNonExistentTest(tests.support.TestCase):
         stream = dnf.pycomp.StringIO()
 
         with tests.support.wiretap_logs('dnf', dnf.logging.SUBDEBUG, stream):
-            dnf.plugin.import_modules(package, ('nonexistent.py',))
+            dnf.plugin._import_modules(package, ('nonexistent.py',))
 
         end = ('ImportError: No module named \'testpkg\'\n' if dnf.pycomp.PY3
                else 'ImportError: No module named testpkg.nonexistent\n')

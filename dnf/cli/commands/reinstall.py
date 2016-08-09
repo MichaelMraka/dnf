@@ -64,8 +64,9 @@ class ReinstallCommand(commands.Command):
         for pkg in self.base.add_remote_rpms(self.opts.filenames, strict=False):
             try:
                 self.base.package_reinstall(pkg)
-            except dnf.exceptions.MarkingError as e:
-                logger.info(e)
+            except dnf.exceptions.MarkingError:
+                logger.info(_('No match for argument: %s'),
+                            self.base.output.term.bold(pkg.location))
             else:
                 done = True
 
@@ -73,17 +74,22 @@ class ReinstallCommand(commands.Command):
         for pkg_spec in self.opts.pkg_specs + ['@' + x for x in self.opts.grp_specs]:
             try:
                 self.base.reinstall(pkg_spec)
-            except dnf.exceptions.PackagesNotInstalledError:
-                logger.info(_('No match for argument: %s'), pkg_spec)
+            except dnf.exceptions.PackagesNotInstalledError as err:
+                for pkg in err.packages:
+                    logger.info(_('Package %s available, but not installed.'),
+                                self.output.term.bold(pkg.name))
+                    break
+                logger.info(_('No match for argument: %s'),
+                            self.base.output.term.bold(pkg_spec))
             except dnf.exceptions.PackagesNotAvailableError as err:
                 for pkg in err.packages:
                     xmsg = ''
                     yumdb_info = self.base._yumdb.get_package(pkg)
                     if 'from_repo' in yumdb_info:
                         xmsg = _(' (from %s)') % yumdb_info.from_repo
-                    msg = _('Installed package %s%s%s%s not available.')
-                    logger.info(msg, self.base.output.term.MODE['bold'], pkg,
-                                self.base.output.term.MODE['normal'], xmsg)
+                    msg = _('Installed package %s%s not available.')
+                    logger.info(msg, self.base.output.term.bold(pkg),
+                                xmsg)
             except dnf.exceptions.MarkingError:
                 assert False, 'Only the above marking errors are expected.'
             else:

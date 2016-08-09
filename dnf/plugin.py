@@ -39,6 +39,7 @@ logger = logging.getLogger('dnf')
 
 DYNAMIC_PACKAGE = 'dnf.plugin.dynamic'
 
+
 class Plugin(object):
     """The base class custom plugins must derive from. #:api"""
 
@@ -75,6 +76,7 @@ class Plugin(object):
         # :api
         pass
 
+
 class Plugins(object):
     def __init__(self):
         self.plugin_cls = []
@@ -85,7 +87,7 @@ class Plugins(object):
             dnf.util.mapall(operator.methodcaller(method), self.plugins)
         return fn
 
-    def check_enabled(self, conf):
+    def _check_enabled(self, conf):
         """Checks whether plugins are enabled or disabled in configuration files
            and removes disabled plugins from list"""
         for plug_cls in self.plugin_cls[:]:
@@ -97,7 +99,7 @@ class Plugins(object):
             if disabled:
                 self.plugin_cls.remove(plug_cls)
 
-    def load(self, conf, skips):
+    def _load(self, conf, skips):
         """Dynamically load relevant plugin modules."""
 
         if DYNAMIC_PACKAGE in sys.modules:
@@ -105,17 +107,17 @@ class Plugins(object):
         sys.modules[DYNAMIC_PACKAGE] = package = dnf.pycomp.ModuleType(DYNAMIC_PACKAGE)
         package.__path__ = []
 
-        files = iter_py_files(conf.pluginpath, skips)
-        import_modules(package, files)
-        self.plugin_cls = plugin_classes()[:]
-        self.check_enabled(conf)
+        files = _iter_py_files(conf.pluginpath, skips)
+        _import_modules(package, files)
+        self.plugin_cls = _plugin_classes()[:]
+        self._check_enabled(conf)
         if len(self.plugin_cls) > 0:
             names = sorted(plugin.name for plugin in self.plugin_cls)
             logger.debug('Loaded plugins: %s', ', '.join(names))
 
-    run_config = _caller('config')
+    _run_config = _caller('config')
 
-    def run_init(self, base, cli=None):
+    def _run_init(self, base, cli=None):
         for p_cls in self.plugin_cls:
             plugin = p_cls(base, cli)
             self.plugins.append(plugin)
@@ -124,13 +126,15 @@ class Plugins(object):
     run_resolved = _caller('resolved')
     run_transaction = _caller('transaction')
 
-    def unload(self):
+    def _unload(self):
         del sys.modules[DYNAMIC_PACKAGE]
 
-def plugin_classes():
+
+def _plugin_classes():
     return Plugin.__subclasses__()
 
-def import_modules(package, py_files):
+
+def _import_modules(package, py_files):
     for fn in py_files:
         path, module = os.path.split(fn)
         package.__path__.append(path)
@@ -142,13 +146,15 @@ def import_modules(package, py_files):
             logger.error(_('Failed loading plugin: %s'), module)
             logger.log(dnf.logging.SUBDEBUG, '', exc_info=True)
 
-def iter_py_files(paths, skips):
+
+def _iter_py_files(paths, skips):
     for p in paths:
         for fn in glob.glob('%s/*.py' % p):
             (name, _) = os.path.splitext(os.path.basename(fn))
             if any(fnmatch.fnmatch(name, pattern) for pattern in skips):
                 continue
             yield fn
+
 
 def register_command(command_class):
     #:api

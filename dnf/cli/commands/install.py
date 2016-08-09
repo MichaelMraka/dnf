@@ -61,9 +61,14 @@ class InstallCommand(commands.Command):
         strict = self.base.conf.strict
 
         # Install files.
-        # try to install packages with higher version first
-        for pkg in sorted(self.base.add_remote_rpms(self.opts.filenames, strict=strict), reverse=True):
-            self.base.package_install(pkg, strict=strict)
+        err_pkgs = []
+        for pkg in self.base.add_remote_rpms(self.opts.filenames, strict=strict):
+            try:
+                self.base.package_install(pkg, strict=strict)
+            except dnf.exceptions.MarkingError:
+                msg = _('No match for argument: %s')
+                logger.info(msg, self.base.output.term.bold(pkg.location))
+                err_pkgs.append(pkg)
 
         # Install groups.
         if self.opts.grp_specs:
@@ -82,9 +87,10 @@ class InstallCommand(commands.Command):
             try:
                 self.base.install(pkg_spec, strict=strict)
             except dnf.exceptions.MarkingError:
-                msg = _('No package %s%s%s available.')
-                logger.info(msg, self.base.output.term.MODE['bold'], pkg_spec,
-                            self.base.output.term.MODE['normal'])
+                msg = _('No package %s available.')
+                logger.info(msg, self.base.output.term.bold(pkg_spec))
                 errs.append(pkg_spec)
-        if len(errs) != 0 and self.base.conf.strict:
-            raise dnf.exceptions.PackagesNotAvailableError(_("Unable to find a match."), packages=errs)
+        if (len(errs) != 0 or len(err_pkgs) != 0) and self.base.conf.strict:
+            raise dnf.exceptions.PackagesNotAvailableError(
+                _("Unable to find a match"), pkg_spec=' '.join(errs),
+                packages=err_pkgs)
