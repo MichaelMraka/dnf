@@ -1401,7 +1401,7 @@ Transaction Summary
                     continue
                 pats.append(tid)
         if pats:
-            tids.update(self.history.search(pats))
+            tids.update(self.history.swdb.search(pats))
 
         if not tids and usertids:
             logger.critical(_('Bad transaction IDs, or package(s), given'))
@@ -1515,7 +1515,7 @@ Transaction Summary
             tids.add(id_or_offset if id_or_offset >= 0 else
                      old.tid + id_or_offset + 1)
         if pats:
-            tids.update(self.history.search(pats))
+            tids.update(self.history.swdb.search(pats))
         utids = tids.copy()
         if mtids:
             mtids = sorted(mtids)
@@ -1822,7 +1822,7 @@ Transaction Summary
 
         :param extcmds: list of extra command line arguments
         """
-        tids = self.history.search(extcmds)
+        tids = self.history.swdb.search(extcmds)
         limit = None
         if extcmds and not tids:
             logger.critical(_('Bad transaction IDs, or package(s), given'))
