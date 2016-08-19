@@ -753,13 +753,13 @@ class Cli(object):
         for rid in self.base._repo_persistor.get_expired_repos():
             repo = self.base.repos.get(rid)
             if repo:
-                repo.md_expire_cache()
+                repo._md_expire_cache()
 
         # setup the progress bars/callbacks
         (bar, self.base._ds_callback) = self.base.output.setup_progress_callbacks()
         self.base.repos.all().set_progress_bar(bar)
         key_import = output.CliKeyImport(self.base, self.base.output)
-        self.base.repos.all().set_key_import(key_import)
+        self.base.repos.all()._set_key_import(key_import)
 
     def _log_essentials(self):
         logger.debug('DNF version: %s', dnf.const.VERSION)
@@ -778,10 +778,10 @@ class Cli(object):
         if not demands.cacheonly:
             if demands.freshest_metadata:
                 for repo in repos.iter_enabled():
-                    repo.md_expire_cache()
+                    repo._md_expire_cache()
             elif not demands.fresh_metadata:
                 for repo in repos.values():
-                    repo.md_lazy = True
+                    repo._md_lazy = True
 
         if demands.sack_activation:
             self.base.fill_sack(load_system_repo='auto',
@@ -831,7 +831,7 @@ class Cli(object):
         # Read up configuration options and initialize plugins
         try:
             self.base.conf._configure_from_options(opts)
-            self.read_conf_file(opts.releasever)
+            self._read_conf_file(opts.releasever)
         except (dnf.exceptions.ConfigError, ValueError) as e:
             logger.critical(_('Config error: %s'), e)
             sys.exit(1)
@@ -896,7 +896,7 @@ class Cli(object):
         if self.base.conf.color != 'auto':
             self.base.output.term.reinit(color=self.base.conf.color)
 
-    def read_conf_file(self, releasever=None):
+    def _read_conf_file(self, releasever=None):
         timer = dnf.logging.Timer('config')
         conf = self.base.conf
 

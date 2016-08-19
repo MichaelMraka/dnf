@@ -34,7 +34,7 @@ logger = logging.getLogger('dnf')
 
 
 def _expire_str(repo, md):
-    last = time.ctime(md.timestamp) if md else _("unknown")
+    last = time.ctime(md._timestamp) if md else _("unknown")
     if repo.metadata_expire <= -1:
         return _("Never (last: %s)") % last
     elif not repo.metadata_expire:
@@ -106,7 +106,7 @@ class RepoListCommand(commands.Command):
 
         repos = list(self.base.repos.values())
         repos.sort(key=operator.attrgetter('id'))
-        enabled_repos = self.base.repos.enabled()
+        enabled_repos = self.base.repos.iter_enabled()
         term = self.output.term
         on_ehibeg = term.FG_COLOR['green'] + term.MODE['bold']
         on_dhibeg = term.FG_COLOR['red']
@@ -157,8 +157,8 @@ class RepoListCommand(commands.Command):
             if not verbose:
                 rid = repo.id
                 if enabled and repo.metalink:
-                    mdts = repo.metadata.timestamp
-                    if mdts > repo.metadata.md_timestamp:
+                    mdts = repo.metadata._timestamp
+                    if mdts > repo.metadata._md_timestamp:
                         rid = '*' + rid
                 cols.append((rid, repo.name,
                              (ui_enabled, ui_endis_wid), ui_num))
@@ -173,16 +173,16 @@ class RepoListCommand(commands.Command):
                 if force_show or extcmds:
                     out += [self.output.fmtKeyValFill(_("Repo-status  : "),
                                                       ui_enabled)]
-                if md and md.revision is not None:
+                if md and md._revision is not None:
                     out += [self.output.fmtKeyValFill(_("Repo-revision: "),
-                                                      md.revision)]
-                if md and md.content_tags:
-                    tags = md.content_tags
+                                                      md._revision)]
+                if md and md._content_tags:
+                    tags = md._content_tags
                     out += [self.output.fmtKeyValFill(_("Repo-tags    : "),
                                                       ", ".join(sorted(tags)))]
 
-                if md and md.distro_tags:
-                    for (distro, tags) in md.distro_tags.items():
+                if md and md._distro_tags:
+                    for (distro, tags) in md._distro_tags.items():
                         out += [self.output.fmtKeyValFill(
                             _("Repo-distro-tags: "),
                             "[%s]: %s" % (distro, ", ".join(sorted(tags))))]
@@ -190,7 +190,7 @@ class RepoListCommand(commands.Command):
                 if md:
                     out += [
                         self.output.fmtKeyValFill(_("Repo-updated : "),
-                                                  time.ctime(md.md_timestamp)),
+                                                  time.ctime(md._md_timestamp)),
                         self.output.fmtKeyValFill(_("Repo-pkgs    : "), ui_num),
                         self.output.fmtKeyValFill(_("Repo-size    : "), ui_size)]
 
@@ -198,7 +198,7 @@ class RepoListCommand(commands.Command):
                     out += [self.output.fmtKeyValFill(_("Repo-metalink: "),
                                                       repo.metalink)]
                     if enabled:
-                        ts = repo.metadata.timestamp
+                        ts = repo.metadata._timestamp
                         out += [self.output.fmtKeyValFill(_("  Updated    : "),
                                                           time.ctime(ts))]
                 elif repo.mirrorlist:
@@ -208,8 +208,8 @@ class RepoListCommand(commands.Command):
                 if baseurls:
                     out += [self.output.fmtKeyValFill(_("Repo-baseurl : "),
                                                       ", ".join(baseurls))]
-                elif enabled and md.mirrors:
-                    url = "%s (%d more)" % (md.mirrors[0], len(md.mirrors) - 1)
+                elif enabled and md._mirrors:
+                    url = "%s (%d more)" % (md._mirrors[0], len(md._mirrors) - 1)
                     out += [self.output.fmtKeyValFill(_("Repo-baseurl : "), url)]
 
                 expire = _expire_str(repo, md)

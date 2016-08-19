@@ -107,17 +107,17 @@ class Base(object):
 
     def _add_repo_to_sack(self, repo):
         repo.load()
-        hrepo = repo.hawkey_repo
-        hrepo.repomd_fn = repo.repomd_fn
-        hrepo.primary_fn = repo.primary_fn
-        hrepo.filelists_fn = repo.filelists_fn
+        hrepo = repo._hawkey_repo
+        hrepo.repomd_fn = repo._repomd_fn
+        hrepo.primary_fn = repo._primary_fn
+        hrepo.filelists_fn = repo._filelists_fn
         hrepo.cost = repo.cost
-        if repo.presto_fn:
-            hrepo.presto_fn = repo.presto_fn
+        if repo._presto_fn:
+            hrepo.presto_fn = repo._presto_fn
         else:
             logger.debug("not found deltainfo for: %s", repo.name)
-        if repo.updateinfo_fn:
-            hrepo.updateinfo_fn = repo.updateinfo_fn
+        if repo._updateinfo_fn:
+            hrepo.updateinfo_fn = repo._updateinfo_fn
         else:
             logger.debug("not found updateinfo for: %s", repo.name)
         self._sack.load_repo(hrepo, build_cache=True, load_filelists=True,
@@ -163,7 +163,7 @@ class Base(object):
 
     def _store_persistent_data(self):
         if self._repo_persistor:
-            expired = [r.id for r in self.repos.iter_enabled() if r.md_expired]
+            expired = [r.id for r in self.repos.iter_enabled() if r._md_expired]
             self._repo_persistor.expired_to_add.update(expired)
             self._repo_persistor.save()
 
@@ -250,14 +250,14 @@ class Base(object):
                 for r in self.repos.iter_enabled():
                     try:
                         self._add_repo_to_sack(r)
-                        if r.metadata.timestamp > mts:
-                            mts = r.metadata.timestamp
-                        if r.metadata.age < age:
-                            age = r.metadata.age
+                        if r.metadata._timestamp > mts:
+                            mts = r.metadata._timestamp
+                        if r.metadata._age < age:
+                            age = r.metadata._age
                         logger.debug(_("%s: using metadata from %s."), r.id,
-                                     time.ctime(r.metadata.md_timestamp))
+                                     time.ctime(r.metadata._md_timestamp))
                     except dnf.exceptions.RepoError as e:
-                        r.md_expire_cache()
+                        r._md_expire_cache()
                         if r.skip_if_unavailable is False:
                             raise
                         errors.append(e)
@@ -412,13 +412,13 @@ class Base(object):
                 continue
             if not repo.metadata:
                 continue
-            comps_fn = repo.metadata.comps_fn
+            comps_fn = repo.metadata._comps_fn
             if comps_fn is None:
                 continue
 
             logger.log(dnf.logging.DDEBUG,
                        'Adding group file from repository: %s', repo.id)
-            if repo.md_only_cached:
+            if repo._md_only_cached:
                 decompressed = misc.calculate_repo_gen_dest(comps_fn,
                                                             'groups.xml')
                 if not os.path.exists(decompressed):
@@ -903,44 +903,44 @@ class Base(object):
                            if not po._is_local_pkg()]
             self._add_tempfiles([pkg.localPkg() for pkg in remote_pkgs])
 
-            payloads = [dnf.repo.pkg2payload(pkg, progress, drpm.delta_factory,
+            payloads = [dnf.repo._pkg2payload(pkg, progress, drpm.delta_factory,
                                              dnf.repo.RPMPayload)
                         for pkg in remote_pkgs]
 
             beg_download = time.time()
             est_remote_size = sum(pload.download_size for pload in payloads)
             progress.start(len(payloads), est_remote_size)
-            errors = dnf.repo.download_payloads(payloads, drpm)
+            errors = dnf.repo._download_payloads(payloads, drpm)
 
-            if errors.irrecoverable:
-                raise dnf.exceptions.DownloadError(errors.irrecoverable)
+            if errors._irrecoverable:
+                raise dnf.exceptions.DownloadError(errors._irrecoverable)
 
-            remote_size = sum(errors.bandwidth_used(pload)
+            remote_size = sum(errors._bandwidth_used(pload)
                               for pload in payloads)
-            saving = dnf.repo.update_saving((0, 0), payloads,
-                                            errors.recoverable)
+            saving = dnf.repo._update_saving((0, 0), payloads,
+                                            errors._recoverable)
 
-            if errors.recoverable:
+            if errors._recoverable:
                 msg = dnf.exceptions.DownloadError.errmap2str(
-                    errors.recoverable)
+                    errors._recoverable)
                 logger.info(msg)
 
-                remaining_pkgs = [pkg for pkg in errors.recoverable]
+                remaining_pkgs = [pkg for pkg in errors._recoverable]
                 payloads = \
-                    [dnf.repo.pkg2payload(pkg, progress, dnf.repo.RPMPayload)
+                    [dnf.repo._pkg2payload(pkg, progress, dnf.repo.RPMPayload)
                      for pkg in remaining_pkgs]
                 est_remote_size = sum(pload.download_size
                                       for pload in payloads)
                 progress.start(len(payloads), est_remote_size)
-                errors = dnf.repo.download_payloads(payloads, drpm)
+                errors = dnf.repo._download_payloads(payloads, drpm)
 
-                assert not errors.recoverable
-                if errors.irrecoverable:
-                    raise dnf.exceptions.DownloadError(errors.irrecoverable)
+                assert not errors._recoverable
+                if errors._irrecoverable:
+                    raise dnf.exceptions.DownloadError(errors._irrecoverable)
 
                 remote_size += \
-                    sum(errors.bandwidth_used(pload) for pload in payloads)
-                saving = dnf.repo.update_saving(saving, payloads, {})
+                    sum(errors._bandwidth_used(pload) for pload in payloads)
+                saving = dnf.repo._update_saving(saving, payloads, {})
 
         if callback_total is not None:
             callback_total(remote_size, beg_download)
@@ -1527,6 +1527,11 @@ class Base(object):
         if pkg._from_system:
             msg = 'upgrade_package() for an installed package.'
             raise NotImplementedError(msg)
+
+        if pkg.arch == 'src':
+            msg = _("File %s is a source package and cannot be updated, ignoring.")
+            logger.info(msg, pkg.location)
+            return 0
 
         q = self.sack.query().installed().filter(name=pkg.name, arch=[pkg.arch, "noarch"])
         if not q:

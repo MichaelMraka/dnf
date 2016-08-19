@@ -70,12 +70,12 @@ class PackageTest(support.TestCase):
     def test_localPkg(self):
         self.pkg.repo.basecachedir = '/cachedir'
         self.pkg.repo.baseurl = ['file:///mnt/cd']
-        self.assertTrue(self.pkg.repo.local)
+        self.assertTrue(self.pkg.repo._local)
         self.assertEqual(self.pkg.localPkg(), '/mnt/cd/f/foo.rpm')
         self.pkg.repo.baseurl = ['http://remote']
-        self.assertFalse(self.pkg.repo.local)
+        self.assertFalse(self.pkg.repo._local)
         self.assertEqual(self.pkg.localPkg(),
-                         self.pkg.repo.cachedir + '/packages/foo.rpm')
+                         self.pkg.repo._cachedir + '/packages/foo.rpm')
 
     def test_verify(self):
         with mock.patch.object(self.pkg, 'localPkg',

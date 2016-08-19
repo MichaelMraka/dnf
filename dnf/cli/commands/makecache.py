@@ -35,7 +35,6 @@ logger = logging.getLogger("dnf")
 class MakeCacheCommand(commands.Command):
     aliases = ('makecache',)
     summary = _('generate the metadata cache')
-    usage = ''
 
     @staticmethod
     def set_argparser(parser):
@@ -48,7 +47,7 @@ class MakeCacheCommand(commands.Command):
         """Verify that conditions are met so that this command can
         run; namely that there is an enabled repository.
         """
-        commands.checkEnabledRepo(self.base)
+        commands._checkEnabledRepo(self.base)
 
     def run(self):
         msg = _("Making cache files for all metadata files.")
@@ -70,22 +69,22 @@ class MakeCacheCommand(commands.Command):
             if since_last_makecache is not None and since_last_makecache < period:
                 logger.info(_('Metadata cache refreshed recently.'))
                 return False
-            self.base.repos.all().max_mirror_tries = 1
+            self.base.repos.all()._max_mirror_tries = 1
 
         for r in self.base.repos.iter_enabled():
-            (is_cache, expires_in) = r.metadata_expire_in()
+            (is_cache, expires_in) = r._metadata_expire_in()
             if expires_in is None:
                 logger.info('%s: will never be expired'
                             ' and will not be refreshed.', r.id)
             elif not is_cache or expires_in <= 0:
                 logger.debug('%s: has expired and will be refreshed.', r.id)
-                r.md_expire_cache()
+                r._md_expire_cache()
             elif timer and expires_in < period:
                 # expires within the checking period:
                 msg = "%s: metadata will expire after %d seconds " \
                     "and will be refreshed now"
                 logger.debug(msg, r.id, expires_in)
-                r.md_expire_cache()
+                r._md_expire_cache()
             else:
                 logger.debug('%s: will expire after %d seconds.', r.id,
                              expires_in)

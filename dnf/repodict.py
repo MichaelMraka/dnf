@@ -36,7 +36,7 @@ class RepoDict(dict):
         if id_ in self:
             msg = 'Repository %s is listed more than once in the configuration'
             raise ConfigError(msg % id_)
-        msg = repo.valid()
+        msg = repo._valid()
         if msg:
             raise ConfigError(msg)
         self[id_] = repo
@@ -45,7 +45,7 @@ class RepoDict(dict):
         # :api
         return dnf.util.MultiCallList(self.values())
 
-    def any_enabled(self):
+    def _any_enabled(self):
         return not dnf.util.empty(self.iter_enabled())
 
     def _enable_sub_repos(self, sub_name_fn):
@@ -74,9 +74,6 @@ class RepoDict(dict):
                     else "{}-source".format(name))
 
         self._enable_sub_repos(source_name)
-
-    def enabled(self):
-        return [r for r in self.values() if r.enabled]
 
     def get_matching(self, key):
         # :api

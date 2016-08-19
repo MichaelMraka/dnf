@@ -47,7 +47,7 @@ def _printable_fingerprint(fpr_hex):
 
 
 def import_repo_keys(repo):
-    gpgdir = repo.pubring_dir
+    gpgdir = repo._pubring_dir
     known_keys = keyids_from_pubring(gpgdir)
     for keyurl in repo.gpgkey:
         for keyinfo in retrieve(keyurl):
@@ -55,7 +55,7 @@ def import_repo_keys(repo):
             if keyid in known_keys:
                 logger.debug('repo %s: 0x%s already imported', repo.id, keyid)
                 continue
-            if not repo.key_import.confirm(keyinfo):
+            if not repo._key_import._confirm(keyinfo):
                 continue
             dnf.yum.misc.import_key_to_pubring(
                 keyinfo.raw_key, keyinfo.short_id, gpgdir=gpgdir,

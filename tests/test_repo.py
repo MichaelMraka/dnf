@@ -114,10 +114,10 @@ class DownloadErrorsTest(support.TestCase):
         pkg2.downloadsize = 1
         pl1 = dnf.repo.RPMPayload(pkg1, None)
         pl2 = dnf.repo.RPMPayload(pkg2, None)
-        errors.skipped.add(pl2.pkg)
+        errors._skipped.add(pl2.pkg)
 
-        self.assertEqual(errors.bandwidth_used(pl1), 10)
-        self.assertEqual(errors.bandwidth_used(pl2), 0)
+        self.assertEqual(errors._bandwidth_used(pl1), 10)
+        self.assertEqual(errors._bandwidth_used(pl2), 0)
 
 
 class HandleTest(support.TestCase):
@@ -128,7 +128,7 @@ class HandleTest(support.TestCase):
 
     def test_substs(self):
         subst_dct = {'version': '69'}
-        h = dnf.repo._Handle.new_local(subst_dct, False, 1, '/')
+        h = dnf.repo._Handle._new_local(subst_dct, False, 1, '/')
         self.assertCountEqual(h.varsub, [('version', '69'),])
 
 
@@ -142,7 +142,7 @@ class MetadataTest(support.TestCase):
 
     def test_file_timestamp(self):
         self.assertRaises(dnf.exceptions.MetadataError,
-                          self.metadata.file_timestamp, 'primary')
+                          self.metadata._file_timestamp, 'primary')
 
 
 class RepoTest(RepoTestMixin, support.TestCase):
@@ -160,11 +160,11 @@ class RepoTest(RepoTestMixin, support.TestCase):
         self.repo = self.build_repo('r', 'r for riot')
 
     def tearDown(self):
-        dnf.util.rm_rf(self.repo.cachedir)
+        dnf.util.rm_rf(self.repo._cachedir)
 
     def test_cachedir(self):
         self.repo.baseurl = ["http://download.repo.org/r"]
-        self.assertEqual(self.repo.cachedir,
+        self.assertEqual(self.repo._cachedir,
                          os.path.join(self.TMP_CACHEDIR, 'r-0824b1db602c8695'))
 
     def test_dump(self):
@@ -181,16 +181,16 @@ class RepoTest(RepoTestMixin, support.TestCase):
         """Test settings get passed down to the hawkey repo instance."""
         r = self.repo
         self.assertEqual(r.cost, 1000)
-        self.assertEqual(r.hawkey_repo.cost, 1000)
+        self.assertEqual(r._hawkey_repo.cost, 1000)
         r.cost = 300
         self.assertEqual(r.cost, 300)
-        self.assertEqual(r.hawkey_repo.cost, 300)
+        self.assertEqual(r._hawkey_repo.cost, 300)
 
         self.assertEqual(r.priority, 99)
-        self.assertEqual(r.hawkey_repo.priority, 99)
+        self.assertEqual(r._hawkey_repo.priority, 99)
         r.priority = 9
         self.assertEqual(r.priority, 9)
-        self.assertEqual(r.hawkey_repo.priority, 9)
+        self.assertEqual(r._hawkey_repo.priority, 9)
 
     def test_expire_cache(self):
         self.repo.load()
@@ -198,14 +198,14 @@ class RepoTest(RepoTestMixin, support.TestCase):
         del self.repo
         self.repo = dnf.repo.Repo("r", self.conf)
         self.repo.baseurl = [BASEURL]
-        self.repo.md_expire_cache()
+        self.repo._md_expire_cache()
         self.assertTrue(self.repo.load())
 
     def test_gpgcheck(self):
         self.repo.gpgcheck = True
         self.assertTrue(self.repo.load())
 
-    @mock.patch('dnf.repo.Repo.local', False)
+    @mock.patch('dnf.repo.Repo._local', False)
     def test_keep_old_pgks(self):
         dnf.util.ensure_dir(self.repo.pkgdir)
         survivor = os.path.join(self.repo.pkgdir, "survivor")
@@ -228,7 +228,7 @@ class RepoTest(RepoTestMixin, support.TestCase):
         self.assertIsNone(repo.metadata)
         self.assertTrue(repo.load())
         self.assertIsNotNone(repo.metadata)
-        repomd = os.path.join(self.repo.cachedir, "repodata/repomd.xml")
+        repomd = os.path.join(self.repo._cachedir, "repodata/repomd.xml")
         self.assertTrue(os.path.isfile(repomd))
         self.assertTrue(repo.metadata.fresh)
 
@@ -240,29 +240,29 @@ class RepoTest(RepoTestMixin, support.TestCase):
         self.repo.load()
         self.setUp()
         repo = self.repo
-        repo.md_expire_cache()
-        repo.md_lazy = True
+        repo._md_expire_cache()
+        repo._md_lazy = True
         self.assertFalse(repo.load())
 
     def test_metadata_expire_in(self):
         repo = self.repo
-        self.assertEqual(repo.metadata_expire_in(), (False, 0))
+        self.assertEqual(repo._metadata_expire_in(), (False, 0))
         repo.load()
-        (has, time) = repo.metadata_expire_in()
+        (has, time) = repo._metadata_expire_in()
         self.assertTrue(has)
         self.assertGreater(time, 0)
 
         repo.metadata_expire = 'never'
-        self.assertEqual(repo.metadata_expire_in(), (True, None))
+        self.assertEqual(repo._metadata_expire_in(), (True, None))
 
     def test_md_only_cached(self):
-        self.repo.md_only_cached = True
+        self.repo._md_only_cached = True
         self.assertRaises(dnf.exceptions.RepoError, self.repo.load)
-        self.repo.md_try_cache()
+        self.repo._sync_strategy = 3
         self.repo.load()
         del self.repo
         self.setUp() # get a new repo
-        self.repo.md_only_cached = True
+        self.repo._md_only_cached = True
         self.assertFalse(self.repo.load())
         self.assertFalse(self.repo.metadata.fresh)
 
@@ -270,7 +270,7 @@ class RepoTest(RepoTestMixin, support.TestCase):
         del self.repo
         self.setUp()
         self.repo.metadata_expire = 0
-        self.repo.md_only_cached = True
+        self.repo._md_only_cached = True
         self.assertFalse(self.repo.load())
 
     def test_pkgdir(self):
@@ -318,17 +318,17 @@ class RepoTest(RepoTestMixin, support.TestCase):
         self.assertFalse(repo._expired)
 
     def test_valid(self):
-        self.assertIsNone(self.repo.valid())
+        self.assertIsNone(self.repo._valid())
 
         repo = dnf.repo.Repo('r', self.conf)
-        self.assertRegexpMatches(repo.valid(), 'no mirror or baseurl')
+        self.assertRegexpMatches(repo._valid(), 'no mirror or baseurl')
 
     def test_handle_new_pkg_download(self):
         """Ensure mirrors are never resolved for package download."""
         repo = self.repo
         repo.mirrorlist = 'http://anything'
         repo.metadata = mock.Mock()
-        repo.metadata.mirrors = ['resolved']
+        repo.metadata._mirrors = ['resolved']
         h = repo._handle_new_pkg_download()
         self.assertIsNone(h.mirrorlist)
 
@@ -339,7 +339,7 @@ class RepoTest(RepoTestMixin, support.TestCase):
         self.assertEqual(self.repo.bandwidth, 10 << 20)
         opts = {}
         with mock.patch('librepo.Handle.setopt', opts.__setitem__):
-            self.repo.get_handle()
+            self.repo._get_handle()
         self.assertEqual(opts[librepo.LRO_MAXSPEED], 5 << 20)
 
 
@@ -351,16 +351,16 @@ class LocalRepoTest(support.TestCase):
         self.repo.name = "r for riot"
 
     def test_mirrors(self):
-        self.repo.md_only_cached = True
-        with mock.patch('dnf.repo.Repo.cachedir', REPOS + "/rpm"):
+        self.repo._md_only_cached = True
+        with mock.patch('dnf.repo.Repo._cachedir', REPOS + "/rpm"):
             self.assertFalse(self.repo.load())  # got a cache
-        self.assertLength(self.repo.metadata.mirrors, 4)
-        self.assertEqual(self.repo.metadata.mirrors[0], 'http://many/x86_64')
+        self.assertLength(self.repo.metadata._mirrors, 4)
+        self.assertEqual(self.repo.metadata._mirrors[0], 'http://many/x86_64')
 
-    @mock.patch.object(dnf.repo.Metadata, 'reset_age')
+    @mock.patch.object(dnf.repo.Metadata, '_reset_age')
     @mock.patch('dnf.repo.Repo._handle_new_remote')
     def test_reviving(self, new_remote_m, reset_age_m):
-        self.repo.md_expire_cache()
+        self.repo._md_expire_cache()
         self.repo.metalink = 'http://meh'
         remote_handle_m = new_remote_m()
         remote_handle_m.metalink = \
@@ -368,48 +368,48 @@ class LocalRepoTest(support.TestCase):
                         ('sha1', 'd5f18c856e765cd88a50dbf1bfaea51de3b5e516'),
                         ('sha256', 'ead48d5c448a481bd66a4413d7be28bd44ce5de1ee59ecb723c78dcf4e441696'),
                         ('sha512', '9a3131485c0c0a3f65bb5f25155e89d2d6b09e74ffdaa1c3339d3874885d160d8b4667a4a83dbd7d2702a5d41a4e1bc5622c4783b77dcf1f69626c68975202ce')]}
-        with mock.patch('dnf.repo.Repo.cachedir', REPOS + "/rpm"):
+        with mock.patch('dnf.repo.Repo._cachedir', REPOS + "/rpm"):
             self.assertTrue(self.repo.load())
         self.assertTrue(remote_handle_m.fetchmirrors)
         self.assertFalse(self.repo._expired)
         reset_age_m.assert_called_with()
 
-    @mock.patch.object(dnf.repo.Metadata, 'reset_age')
+    @mock.patch.object(dnf.repo.Metadata, '_reset_age')
     @mock.patch('dnf.repo.Repo._handle_new_remote')
     def test_reviving_lame_hashes(self, new_remote_m, _):
-        self.repo.md_expire_cache()
+        self.repo._md_expire_cache()
         self.repo.metalink = 'http://meh'
         new_remote_m().metalink = \
             {'hashes': [('md5', 'fcf04ce803b3e15cbef6ea6f12ed4533'),
                         ('sha1', '3731498f6b7b96316590205a4d7a2add484471e0')]}
-        with mock.patch('dnf.repo.Repo.cachedir', REPOS + "/rpm"):
+        with mock.patch('dnf.repo.Repo._cachedir', REPOS + "/rpm"):
             self.repo._try_cache()
             self.assertFalse(self.repo._try_revive())
 
-    @mock.patch.object(dnf.repo.Metadata, 'reset_age')
+    @mock.patch.object(dnf.repo.Metadata, '_reset_age')
     @mock.patch('dnf.repo.Repo._handle_new_remote')
     def test_reviving_mismatched_hashes(self, new_remote_m, _):
-        self.repo.md_expire_cache()
+        self.repo._md_expire_cache()
         self.repo.metalink = 'http://meh'
         new_remote_m().metalink = \
             {'hashes': [('sha256', '4394be16de62563321f6ea9604513a8a2f6b9ab67898bbed218feeca8e6a7180'),
                         ('sha512', 'obviousfail')]}
         # can not do the entire load() here, it would run on after try_revive()
         # failed.
-        with mock.patch('dnf.repo.Repo.cachedir', REPOS + "/rpm"):
+        with mock.patch('dnf.repo.Repo._cachedir', REPOS + "/rpm"):
             self.repo._try_cache()
             self.assertFalse(self.repo._try_revive())
 
     @mock.patch('dnf.repo.Repo._handle_new_remote')
     def test_reviving_404(self, new_remote_m):
         url = 'http://meh'
-        self.repo.md_expire_cache()
+        self.repo._md_expire_cache()
         self.repo.metalink = url
         lr_exc = librepo.LibrepoException(
             librepo.LRE_CURL, 'Error HTTP/FTP status code: 404', 'Curl error.')
         exc = dnf.repo._DetailedLibrepoError(lr_exc, url)
-        new_remote_m().perform = mock.Mock(side_effect=exc)
-        with mock.patch('dnf.repo.Repo.cachedir', REPOS + "/rpm"):
+        new_remote_m()._perform = mock.Mock(side_effect=exc)
+        with mock.patch('dnf.repo.Repo._cachedir', REPOS + "/rpm"):
             self.assertRaises(dnf.exceptions.RepoError, self.repo.load)
 
 
@@ -421,15 +421,15 @@ class DownloadPayloadsTest(RepoTestMixin, support.TestCase):
 
         drpm = dnf.drpm.DeltaInfo(None, None)
         with mock.patch('dnf.drpm.DeltaInfo.wait', wait):
-            errs = dnf.repo.download_payloads([], drpm)
-        self.assertEqual(errs.recoverable, {'step' : ['right']})
-        self.assertEmpty(errs.irrecoverable)
+            errs = dnf.repo._download_payloads([], drpm)
+        self.assertEqual(errs._recoverable, {'step' : ['right']})
+        self.assertEmpty(errs._irrecoverable)
 
     def test_empty_transaction(self):
         drpm = dnf.drpm.DeltaInfo(None, None)
-        errs = dnf.repo.download_payloads([], drpm)
-        self.assertEmpty(errs.recoverable)
-        self.assertEmpty(errs.irrecoverable)
+        errs = dnf.repo._download_payloads([], drpm)
+        self.assertEmpty(errs._recoverable)
+        self.assertEmpty(errs._irrecoverable)
 
     def test_fatal_error(self):
         def raiser(_, failfast):
@@ -437,12 +437,12 @@ class DownloadPayloadsTest(RepoTestMixin, support.TestCase):
 
         drpm = dnf.drpm.DeltaInfo(None, None)
         with mock.patch('librepo.download_packages', side_effect=raiser):
-            errs = dnf.repo.download_payloads([], drpm)
-        self.assertEqual(errs.irrecoverable, {'' : ['hit']})
-        self.assertEmpty(errs.recoverable)
+            errs = dnf.repo._download_payloads([], drpm)
+        self.assertEqual(errs._irrecoverable, {'' : ['hit']})
+        self.assertEmpty(errs._recoverable)
 
     # twist Repo to think it's remote:
-    @mock.patch('dnf.repo.Repo.local', False)
+    @mock.patch('dnf.repo.Repo._local', False)
     def test_remote_download(self):
         progress = dnf.callback.NullDownloadProgress()
         repo = self.build_repo('r', 'r for riot')
@@ -452,10 +452,10 @@ class DownloadPayloadsTest(RepoTestMixin, support.TestCase):
 
         pload = dnf.repo.RPMPayload(pkg, progress)
         drpm = dnf.drpm.DeltaInfo(None, None)
-        errs = dnf.repo.download_payloads([pload], drpm)
-        self.assertEmpty(errs.recoverable)
-        self.assertEmpty(errs.irrecoverable)
-        path = os.path.join(repo.cachedir, 'packages/tour-4-4.noarch.rpm')
+        errs = dnf.repo._download_payloads([pload], drpm)
+        self.assertEmpty(errs._recoverable)
+        self.assertEmpty(errs._irrecoverable)
+        path = os.path.join(repo._cachedir, 'packages/tour-4-4.noarch.rpm')
         self.assertFile(path)
 
 
@@ -479,7 +479,7 @@ class SavingTest(unittest.TestCase):
         pload2 = dnf.drpm.DeltaPayload(None, mock.Mock(downloadsize=5), pkg,
                                        progress)
         saving = (5, 10)
-        saving = dnf.repo.update_saving(saving, (pload1, pload2), {})
+        saving = dnf.repo._update_saving(saving, (pload1, pload2), {})
         self.assertEqual(saving, (15, 23))
 
     def test_update_saving_with_err(self):
@@ -490,5 +490,5 @@ class SavingTest(unittest.TestCase):
         pload = dnf.drpm.DeltaPayload(None, mock.Mock(downloadsize=5), pkg,
                                       progress)
         saving = (5, 10)
-        saving = dnf.repo.update_saving(saving, (pload,), {pkg:'failed'})
+        saving = dnf.repo._update_saving(saving, (pload,), {pkg:'failed'})
         self.assertEqual(saving, (10, 10))
