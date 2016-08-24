@@ -136,10 +136,10 @@ class BaseCli(dnf.Base):
         super(BaseCli, self).__init__(conf=conf)
         self.output = output.Output(self, self.conf)
 
-    def _groups_diff(self):
-        if not self._group_persistor:
-            return None
-        return self._group_persistor.diff()
+    #def _groups_diff(self):
+    #    if not self._group_persistor:
+    #        return None
+    #    return self._group_persistor.diff()
 
     def do_transaction(self, display=()):
         """Take care of package downloading, checking, user
@@ -151,10 +151,10 @@ class BaseCli(dnf.Base):
            occurred in the pre-transaction checks
         """
 
-        grp_diff = self._groups_diff()
-        grp_str = self.output.list_group_transaction(self.comps, self._group_persistor, grp_diff)
-        if grp_str:
-            logger.info(grp_str)
+        #grp_diff = self._groups_diff()
+        #grp_str = self.output.list_group_transaction(self.comps, self._group_persistor, grp_diff)
+        #if grp_str:
+        #    logger.info(grp_str)
         trans = self.transaction
         pkg_str = self.output.list_transaction(trans)
         if pkg_str:
@@ -184,7 +184,7 @@ class BaseCli(dnf.Base):
             else:
                 self.output.reportDownloadSize(install_pkgs, install_only)
 
-        if trans or (grp_diff and not grp_diff.empty()):
+        if trans: #or (grp_diff and not grp_diff.empty()):
             # confirm with user
             if self._promptWanted():
                 if self.conf.assumeno or not self.output.userconfirm():
