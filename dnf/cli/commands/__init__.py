@@ -38,7 +38,6 @@ import functools
 import logging
 import operator
 import os
-import time
 
 logger = logging.getLogger('dnf')
 _RPM_VERIFY = _("To diagnose the problem, try running: '%s'.") % \
@@ -748,7 +747,7 @@ class RepoPkgsCommand(Command):
         def run_on_repo(self):
             """Execute the command with respect to given arguments *cli_args*."""
             _checkGPGKey(self.base, self.cli)
-            self.base.upgrade_userlist_to(selt.opts.pkg_specs, selt.opts.reponame)
+            self.base.upgrade_userlist_to(self.opts.pkg_specs, self.reponame)
 
     SUBCMDS = {CheckUpdateSubCommand, InfoSubCommand, InstallSubCommand,
                ListSubCommand, MoveToSubCommand, ReinstallOldSubCommand,
@@ -867,7 +866,7 @@ class HistoryCommand(Command):
         old = self.base.history_get_transaction(extcmds)
         if old is None:
             return 1, ['Failed history redo']
-        tm = time.ctime(old.beg_timestamp)
+        tm = dnf.util.normalize_time(old.beg_timestamp)
         print('Repeating transaction %u, from %s' % (old.tid, tm))
         self.output.historyInfoCmdPkgsAltered(old)
 

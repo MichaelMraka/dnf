@@ -25,16 +25,16 @@ from dnf.i18n import _, ucd, fill_exact_width, exact_width
 from dnf.cli.option_parser import OptionParser
 import dnf.cli.format
 import dnf.pycomp
+import dnf.util
 import fnmatch
 import logging
 import operator
-import time
 
 logger = logging.getLogger('dnf')
 
 
 def _expire_str(repo, md):
-    last = time.ctime(md._timestamp) if md else _("unknown")
+    last = dnf.util.normalize_time(md._timestamp) if md else _("unknown")
     if repo.metadata_expire <= -1:
         return _("Never (last: %s)") % last
     elif not repo.metadata_expire:
@@ -106,7 +106,7 @@ class RepoListCommand(commands.Command):
 
         repos = list(self.base.repos.values())
         repos.sort(key=operator.attrgetter('id'))
-        enabled_repos = self.base.repos.iter_enabled()
+        enabled_repos = list(self.base.repos.iter_enabled())
         term = self.output.term
         on_ehibeg = term.FG_COLOR['green'] + term.MODE['bold']
         on_dhibeg = term.FG_COLOR['red']
@@ -189,8 +189,9 @@ class RepoListCommand(commands.Command):
 
                 if md:
                     out += [
-                        self.output.fmtKeyValFill(_("Repo-updated : "),
-                                                  time.ctime(md._md_timestamp)),
+                        self.output.fmtKeyValFill(
+                            _("Repo-updated : "),
+                            dnf.util.normalize_time(md._md_timestamp)),
                         self.output.fmtKeyValFill(_("Repo-pkgs    : "), ui_num),
                         self.output.fmtKeyValFill(_("Repo-size    : "), ui_size)]
 
@@ -199,8 +200,8 @@ class RepoListCommand(commands.Command):
                                                       repo.metalink)]
                     if enabled:
                         ts = repo.metadata._timestamp
-                        out += [self.output.fmtKeyValFill(_("  Updated    : "),
-                                                          time.ctime(ts))]
+                        out += [self.output.fmtKeyValFill(
+                            _("  Updated    : "), dnf.util.normalize_time(ts))]
                 elif repo.mirrorlist:
                     out += [self.output.fmtKeyValFill(_("Repo-mirrors : "),
                                                       repo.mirrorlist)]

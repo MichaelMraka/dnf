@@ -36,6 +36,10 @@ Configurable settings of the :class:`dnf.Base` object are stored into a :class:`
 
     Path to a directory used by various DNF subsystems for storing cache data. Has a reasonable root-writable default depending on the distribution. It is up to the client to set this to a location where files and directories can be created under the running user. The directory can be safely deleted after the :class:`dnf.Base` object is destroyed
 
+  .. attribute:: clean_requirements_on_remove
+
+    Boolean option. ``True`` removes dependencies that are no longer used during ``dnf remove``. A package only qualifies for removal via ``clean_requirements_on_remove`` if it was installed through DNF but not on explicit user request, i.e. it was pulled in as a dependency. The default is ``True``. (:ref:`installonlypkgs <installonlypkgs-label>` are never automatically removed.)
+
   .. attribute:: config_file_path
 
     Path to the default main configuration file. Default is ``"/etc/dnf/dnf.conf"``.
@@ -47,6 +51,18 @@ Configurable settings of the :class:`dnf.Base` object are stored into a :class:`
   .. attribute:: get_reposdir
 
     Returns the value of the first valid reposdir or if unavailable the value of created reposdir (string)
+
+  .. attribute:: installonlypkgs
+
+    List of provide names of packages that should only ever be installed, never
+    upgraded. Kernels in particular fall into this category.
+    These packages are never removed by ``dnf autoremove`` even if they were
+    installed as dependencies (see
+    :ref:`clean_requirements_on_remove <clean_requirements_on_remove-label>`
+    for auto removal details).
+    This option overrides the default installonlypkgs list used by DNF.
+    The number of kept package versions is regulated by
+    :ref:`installonly_limit <installonly-limit-label>`.
 
   .. attribute:: installonly_limit
 
@@ -61,6 +77,12 @@ Configurable settings of the :class:`dnf.Base` object are stored into a :class:`
   .. attribute:: installroot
 
     The root of the filesystem for all packaging operations.
+
+  .. attribute:: keepcache
+
+    Keeps downloaded packages in the cache when this boolean option is set to
+    True. Even if it is set to False and packages have not been installed they
+    will still persist until next successful transaction. The default is False.
 
   .. attribute:: logdir
 
@@ -174,6 +196,10 @@ Configurable settings of the :class:`dnf.Base` object are stored into a :class:`
   .. attribute:: username
 
     The username to use for connecting to repo with basic HTTP authentication. Defaults to ``None``.
+
+  .. attribute:: upgrade_group_objects_upgrade
+
+    Set this to False to disable the automatic running of ``group upgrade`` when running the ``upgrade`` command. Default is ``True`` (perform the operation).
 
   .. attribute:: password
 

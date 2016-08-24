@@ -42,7 +42,6 @@ import operator
 import pwd
 import sys
 import time
-from dnf.cli.utils import normalize_time
 
 logger = logging.getLogger('dnf')
 
@@ -503,10 +502,11 @@ class Output(object):
             # print(_("Committer   : %s") % ucd(pkg.committer))
             # print(_("Committime  : %s") % time.ctime(pkg.committime))
             print_key_val(_("Packager"), pkg.packager)
-            print_key_val(_("Buildtime"), normalize_time(pkg.buildtime))
+            print_key_val(_("Buildtime"),
+                          dnf.util.normalize_time(pkg.buildtime))
             if pkg.installtime:
                 print_key_val(_("Install time"),
-                              normalize_time(pkg.installtime))
+                              dnf.util.normalize_time(pkg.installtime))
             if yumdb_info:
                 uid = None
                 if 'installed_by' in yumdb_info:
@@ -1063,7 +1063,12 @@ class Output(object):
             skipped_broken = self._skipped_broken_deps(skipped_conflicts)
             for pkg in sorted(skipped_broken):
                 a_wid = _add_line(lines, data, a_wid, pkg, [])
-            skip_str = _("Skipping packages with broken dependencies")
+            if self.base.conf.upgrade_group_objects_upgrade:
+                skip_str = _("Skipping packages with broken dependencies")
+            else:
+                skip_str = _("Skipping packages with broken dependencies"
+                             " or part of a group")
+
             pkglist_lines.append((skip_str, lines))
 
         if not data['n']:

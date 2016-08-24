@@ -252,7 +252,8 @@ class Base(object):
                         if r.metadata._age < age:
                             age = r.metadata._age
                         logger.debug(_("%s: using metadata from %s."), r.id,
-                                     time.ctime(r.metadata._md_timestamp))
+                                     dnf.util.normalize_time(
+                                         r.metadata._md_timestamp))
                     except dnf.exceptions.RepoError as e:
                         r._md_expire_cache()
                         if r.skip_if_unavailable is False:
@@ -263,7 +264,7 @@ class Base(object):
                     logger.info(_("Last metadata expiration check: "
                                   "%s ago on %s."),
                                 datetime.timedelta(seconds=int(age)),
-                                time.ctime(mts))
+                                dnf.util.normalize_time(mts))
                 for e in errors:
                     logger.warning(_("%s, disabling."), e)
         conf = self.conf
@@ -542,6 +543,18 @@ class Base(object):
         goal = self._goal
         if goal.req_has_erase():
             goal.push_userinstalled(self.sack.query().installed(), self._yumdb)
+        elif not self.conf.upgrade_group_objects_upgrade:
+            # exclude packages installed from groups
+            # these packages will be marked to installation
+            # which could prevent them from upgrade, downgrade
+            # to prevent "conflicting job" error it's not applied
+            # to "remove" and "reinstall" commands
+
+            if not self._group_persistor:
+                self._group_persistor = self._activate_group_persistor()
+            solver = self._build_comps_solver()
+            solver._exclude_packages_from_installed_groups(self)
+
         goal.add_protected(self.sack.query().filter(
             name=self.conf.protected_packages))
         if not self._run_hawkey_goal(goal, allow_erasing):
@@ -841,10 +854,10 @@ class Base(object):
                     pass
             elif hasattr(rpo.repo, 'repoXML'):
                 md = rpo.repo.repoXML
-                if md and md.revision is not None:
-                    yumdb_info.from_repo_revision = str(md.revision)
+                if md and md._revision is not None:
+                    yumdb_info.from_repo_revision = str(md._revision)
                 if md:
-                    yumdb_info.from_repo_timestamp = str(md.timestamp)
+                    yumdb_info.from_repo_timestamp = str(md._timestamp)
 
             loginuid = misc.getloginuid()
             if tsi.op_type in (dnf.transaction.DOWNGRADE,
