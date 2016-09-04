@@ -260,11 +260,11 @@ class Base(object):
                             raise
                         errors.append(e)
                         r.disable()
-                if age != 0:
-                    logger.info(_("Last metadata expiration check: "
-                                  "%s ago on %s."),
-                                datetime.timedelta(seconds=int(age)),
-                                dnf.util.normalize_time(mts))
+                if age != 0 and mts != 0:
+                    logger.warning(_("Last metadata expiration check: "
+                                     "%s ago on %s."),
+                                   datetime.timedelta(seconds=int(age)),
+                                   dnf.util.normalize_time(mts))
                 for e in errors:
                     logger.warning(_("%s, disabling."), e)
         conf = self.conf
