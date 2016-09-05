@@ -575,8 +575,8 @@ class Base(object):
                 exc = dnf.exceptions.Error(msg)
 
         if exc is not None:
-            if self._group_persistor:
-                self._group_persistor._rollback()
+        #if self._group_persistor:
+        #        self._group_persistor._rollback()
             raise exc
         #if self._group_persistor:
         #    installed = self.sack.query().installed()
@@ -1260,7 +1260,7 @@ class Base(object):
                 if not self.sack.query().filter(name=it):
                     # a comps item that doesn't refer to anything real
                     if (attr == trans.install):
-                        self._group_persistor._rollback()
+                        #self._group_persistor._rollback()
                         raise dnf.exceptions.MarkingError(it)
                     continue
                 sltr = dnf.selector.Selector(self.sack)
@@ -1359,7 +1359,7 @@ class Base(object):
             for env_id in res.environments:
                 cnt += self.environment_install(env_id, types, strict=strict)
         if not done and strict:
-            self._group_persistor._rollback()
+            #self._group_persistor._rollback()
             raise dnf.exceptions.Error(_('Nothing to do.'))
         return cnt
 

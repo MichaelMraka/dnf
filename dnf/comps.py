@@ -467,7 +467,7 @@ class Solver(object):
         env = self.comps._environment_by_id(env_id)
         p_env = self.persistor.environment(env_id)
 
-        if p_env and p_env.installed():
+        if p_env and p_env.is_installed():
             raise CompsError(_("Environment '%s' is already installed.") %
                              env.ui_name)
         grp_types = CONDITIONAL | DEFAULT | MANDATORY | OPTIONAL
@@ -508,7 +508,7 @@ class Solver(object):
             env_id = env_id.name_id
         env = self.comps._environment_by_id(env_id)
         p_env = self.persistor.environment(env.id)
-        if not p_env.installed:
+        if not p_env.is_installed():
             raise CompsError(_("Environment '%s' is not installed.") %
                              env.ui_name)
 
