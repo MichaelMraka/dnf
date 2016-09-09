@@ -51,12 +51,12 @@ class Goal(hawkey.Goal):
             return 'group'
         return current_reason
 
-    def push_userinstalled(self, query, yumdb):
+    def push_userinstalled(self, query, history):
         msg = _('--> Finding unneeded leftover dependencies')
         logger.debug(msg)
         for pkg in query.installed():
-            yumdb_info = yumdb.get_package(pkg)
-            reason = getattr(yumdb_info, 'reason', 'user')
+            #FIXME TODO This is kinda slow when accessing swdb for every package - would be fine to do it at once
+            reason = history.attr_by_pattern("reason",pkg)
             if reason != 'dep':
                 self.userinstalled(pkg)
 
