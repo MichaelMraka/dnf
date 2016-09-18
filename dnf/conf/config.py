@@ -522,7 +522,7 @@ class BaseConfig(object):
     def _set_value(self, name, value, priority=PRIO_RUNTIME):
         return self._option[name]._set(value, priority)
 
-    def _populate(self, parser, section, priority=PRIO_DEFAULT):
+    def _populate(self, parser, section, filename, priority=PRIO_DEFAULT):
         """Set option values from an INI file section."""
         if parser.has_section(section):
             for name in parser.options(section):
@@ -532,12 +532,13 @@ class BaseConfig(object):
                     try:
                         opt._set(value, priority)
                     except dnf.exceptions.ConfigError as e:
-                        logger.warning(_('Unknown configuration value: '
-                                         '%s=%s; %s'),
-                                       ucd(name), ucd(value), e.raw_error)
+                        logger.debug(_('Unknown configuration value: '
+                                       '%s=%s in %s; %s'), ucd(name),
+                                     ucd(value), ucd(filename), e.raw_error)
                 else:
-                    logger.warning(_('Unknown configuration option: %s = %s'),
-                                   ucd(name), ucd(value))
+                    logger.debug(
+                        _('Unknown configuration option: %s = %s in %s'),
+                        ucd(name), ucd(value), ucd(filename))
 
     def _config_items(self):
         """Yield (name, value) pairs for every option in the instance."""
@@ -641,6 +642,7 @@ class MainConf(BaseConfig):
                          ListOption([dnf.const.PLUGINCONFPATH])) # :api
         self._add_option('persistdir', PathOption(dnf.const.PERSISTDIR)) # :api
         self._add_option('recent', IntOption(7, range_min=0))
+        self._add_option('retries', PositiveIntOption(10, names_of_0=["0"]))
         self._add_option('reset_nice', BoolOption(True))
 
         self._add_option('cachedir', PathOption(cachedir)) # :api
@@ -672,6 +674,7 @@ class MainConf(BaseConfig):
         self._add_option('username', Option()) # :api
         self._add_option('password', Option()) # :api
         self._add_option('installonlypkgs', ListOption(dnf.const.INSTALLONLYPKGS))
+        self._add_option('group_package_types', ListOption(dnf.const.GROUP_PACKAGE_TYPES))
             # NOTE: If you set this to 2, then because it keeps the current
             # kernel it means if you ever install an "old" kernel it'll get rid
             # of the newest one so you probably want to use 3 as a minimum
@@ -693,6 +696,7 @@ class MainConf(BaseConfig):
         self._add_option('showdupesfromrepos', BoolOption(False))
         self._add_option('enabled', BoolOption(True))
         self._add_option('enablegroups', BoolOption(True))
+        self._add_option('exit_on_lock', BoolOption(False))
 
         self._add_option('bandwidth', BytesOption(0))
         self._add_option('minrate', BytesOption(1000))
@@ -744,6 +748,8 @@ class MainConf(BaseConfig):
         self._add_option('sslclientcert', Option()) # :api
         self._add_option('sslclientkey', Option()) # :api
         self._add_option('deltarpm', BoolOption(True))
+        self._add_option('deltarpm_percentage',
+                         PositiveIntOption(75, names_of_0=["0", "<off>"]))
 
         self._add_option('history_record', BoolOption(True))
         self._add_option('history_record_packages', ListOption(['dnf', 'rpm']))
@@ -865,7 +871,7 @@ class MainConf(BaseConfig):
             self._parser.readfp(config_pp)
         except ParsingError as e:
             raise dnf.exceptions.ConfigError("Parsing file failed: %s" % e)
-        self._populate(self._parser, self._section, priority)
+        self._populate(self._parser, self._section, filename, priority)
 
         # update to where we read the file from
         self._set_value('config_file_path', filename, priority)
@@ -912,6 +918,7 @@ class RepoConf(BaseConfig):
                          inherit(parent._get_option('repo_gpgcheck')))
         self._add_option('enablegroups',
                          inherit(parent._get_option('enablegroups')))
+        self._add_option('retries', inherit(parent._get_option('retries')))
 
         self._add_option('bandwidth', inherit(parent._get_option('bandwidth')))
         self._add_option('minrate', inherit(parent._get_option('minrate')))
@@ -935,6 +942,8 @@ class RepoConf(BaseConfig):
         self._add_option('sslclientkey',
                          inherit(parent._get_option('sslclientkey'))) # :api
         self._add_option('deltarpm', inherit(parent._get_option('deltarpm')))
+        self._add_option('deltarpm_percentage',
+                         inherit(parent._get_option('deltarpm_percentage')))
 
         self._add_option('skip_if_unavailable', BoolOption(True)) # :api
 

@@ -100,6 +100,17 @@ or :ref:`mirrorlist <mirrorlist-label>` option definition.
     and overwritten by \-\ :ref:`-verbose <verbose_options-label>` commandline
     option.
 
+``exit_on_lock``
+    :ref:`boolean <boolean-label>`
+
+    Should the dnf client exit immediately when something else has the lock. Default is False
+
+``group_package_types``
+    :ref:`list <list-label>`
+
+    List of the following: optional, default, mandatory. Tells dnf which type of packages in groups will
+    be installed when 'groupinstall' is called. Default is: default, mandatory
+
 ``install_weak_deps``
     :ref:`boolean <boolean-label>`
 
@@ -248,6 +259,13 @@ or :ref:`mirrorlist <mirrorlist-label>` option definition.
 
     The priority value of this repository, default is 99. If there is more than one candidate package for a particular operation, the one from a repo with *the lowest priority value* is picked, possibly despite being less convenient otherwise (e.g. by being a lower version).
 
+..  _retries-label:
+
+``retries``
+    :ref:`integer <integer-label>`
+
+    Overrides the retries option from the [main] section for this repository.
+
 .. _skip_if_unavailable-label:
 
 ``skip_if_unavailable``
@@ -305,6 +323,13 @@ configuration.
     When enabled, DNF will save bandwidth by downloading much smaller delta RPM
     files, rebuilding them to RPM locally. However, this is quite CPU and I/O
     intensive. Default is True.
+
+``deltarpm_percentage``
+    :ref:`integer <integer-label>`
+
+    When the relative size of delta vs pkg is larger than this, delta is not used.  Default value is 75
+    (Deltas must be at least 25% smaller than the pkg).  Use `0' to turn off delta rpm processing. Local repositories (with
+    file:// baseurl) have delta rpms turned off by default.
 
 ``enablegroups``
     :ref:`boolean <boolean-label>`
@@ -393,6 +418,11 @@ configuration.
     :ref:`boolean <boolean-label>`
 
     Whether to perform GPG signature check on this repository's metadata. The default is False.
+
+``retries``
+    :ref:`integer <integer-label>`
+
+    Set the number of times any attempt to retrieve a file should retry before returning an error. Setting this to `0' makes dnf try forever. Default is `10'.
 
 .. _sslcacert-label:
 

@@ -78,6 +78,7 @@ class AutomaticConfig(object):
         self._parser = None
         self._load(filename)
         self.commands.imply()
+        self.filename = filename
 
     def _load(self, filename):
         parser = iniparse.compat.ConfigParser()
@@ -87,13 +88,13 @@ class AutomaticConfig(object):
         except iniparse.compat.ParsingError as e:
             raise dnf.exceptions.ConfigError("Parsing file failed: %s" % e)
 
-        self.commands._populate(parser, 'commands', dnf.conf.PRIO_AUTOMATICCONFIG)
-        self.email._populate(parser, 'email', dnf.conf.PRIO_AUTOMATICCONFIG)
-        self.emitters._populate(parser, 'emitters', dnf.conf.PRIO_AUTOMATICCONFIG)
+        self.commands._populate(parser, 'commands', filename, dnf.conf.PRIO_AUTOMATICCONFIG)
+        self.email._populate(parser, 'email', filename, dnf.conf.PRIO_AUTOMATICCONFIG)
+        self.emitters._populate(parser, 'emitters', filename, dnf.conf.PRIO_AUTOMATICCONFIG)
         self._parser = parser
 
     def update_baseconf(self, baseconf):
-        baseconf._populate(self._parser, 'base', dnf.conf.PRIO_AUTOMATICCONFIG)
+        baseconf._populate(self._parser, 'base', self.filename, dnf.conf.PRIO_AUTOMATICCONFIG)
 
 
 class CommandsConfig(dnf.conf.BaseConfig):
@@ -134,7 +135,7 @@ def main(args):
         conf = AutomaticConfig(opts.conf_path)
         with dnf.Base() as base:
             cli = dnf.cli.Cli(base)
-            cli._read_conf_file(conf.commands.base_config_file)
+            cli._read_conf_file()
             conf.update_baseconf(base.conf)
             logger.debug('Started dnf-automatic.')
 

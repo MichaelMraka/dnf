@@ -232,7 +232,7 @@ class Base(object):
         """Prepare the Sack and the Goal objects. """
         timer = dnf.logging.Timer('sack setup')
         self._sack = dnf.sack._build_sack(self)
-        lock = dnf.lock.build_metadata_lock(self.conf.cachedir)
+        lock = dnf.lock.build_metadata_lock(self.conf.cachedir, self.conf.exit_on_lock)
         with lock:
             if load_system_repo is not False:
                 try:
@@ -599,7 +599,7 @@ class Base(object):
             return
 
         logger.info(_('Running transaction check'))
-        lock = dnf.lock.build_rpmdb_lock(self.conf.persistdir)
+        lock = dnf.lock.build_rpmdb_lock(self.conf.persistdir, self.conf.exit_on_lock)
         with lock:
             # save our ds_callback out
             dscb = self._ds_callback
@@ -912,9 +912,10 @@ class Base(object):
         if progress is None:
             progress = dnf.callback.NullDownloadProgress()
 
-        lock = dnf.lock.build_download_lock(self.conf.cachedir)
+        lock = dnf.lock.build_download_lock(self.conf.cachedir, self.conf.exit_on_lock)
         with lock:
-            drpm = dnf.drpm.DeltaInfo(self.sack.query().installed(), progress)
+            drpm = dnf.drpm.DeltaInfo(self.sack.query().installed(),
+                                      progress, self.conf.deltarpm_percentage)
             remote_pkgs = [po for po in pkglist
                            if not po._is_local_pkg()]
             self._add_tempfiles([pkg.localPkg() for pkg in remote_pkgs])
@@ -934,11 +935,15 @@ class Base(object):
             remote_size = sum(errors._bandwidth_used(pload)
                               for pload in payloads)
             saving = dnf.repo._update_saving((0, 0), payloads,
-                                            errors._recoverable)
+                                             errors._recoverable)
 
-            if errors._recoverable:
-                msg = dnf.exceptions.DownloadError.errmap2str(
-                    errors._recoverable)
+            retries = self.conf.retries
+            forever = retries == 0
+            while errors._recoverable and (forever or retries > 0):
+                if retries > 0:
+                    retries -= 1
+
+                msg = _("Some packages were not downloaded. Retrying.")
                 logger.info(msg)
 
                 remaining_pkgs = [pkg for pkg in errors._recoverable]
@@ -950,13 +955,17 @@ class Base(object):
                 progress.start(len(payloads), est_remote_size)
                 errors = dnf.repo._download_payloads(payloads, drpm)
 
-                assert not errors._recoverable
                 if errors._irrecoverable:
                     raise dnf.exceptions.DownloadError(errors._irrecoverable)
 
                 remote_size += \
                     sum(errors._bandwidth_used(pload) for pload in payloads)
                 saving = dnf.repo._update_saving(saving, payloads, {})
+
+            if errors._recoverable:
+                msg = dnf.exceptions.DownloadError.errmap2str(
+                    errors._recoverable)
+                logger.info(msg)
 
         if callback_total is not None:
             callback_total(remote_size, beg_download)

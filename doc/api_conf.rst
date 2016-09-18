@@ -48,9 +48,23 @@ Configurable settings of the :class:`dnf.Base` object are stored into a :class:`
 
     Debug messages output level, in the range 0 to 10. Default is 2.
 
+  .. attribute:: deltarpm_percentage
+
+    Integer option. When the relative size of delta vs pkg is larger than this, delta is not used. Default value is 75 (%).
+    Use `0' to turn off delta rpm processing. Local repositories (with file:// baseurl) have delta rpms always turned off.
+
+  .. attribute:: exit_on_lock
+
+    Boolean option, if set to ``True`` dnf client exits immediately when something else has the lock. Default is ``False``.
+
   .. attribute:: get_reposdir
 
     Returns the value of the first valid reposdir or if unavailable the value of created reposdir (string)
+
+  .. attribute:: group_package_types
+
+    List of the following: optional, default, mandatory. Tells dnf which type of packages in groups will
+    be installed when 'groupinstall' is called. Default is: default, mandatory
 
   .. attribute:: installonlypkgs
 
@@ -129,6 +143,10 @@ Configurable settings of the :class:`dnf.Base` object are stored into a :class:`
   .. attribute:: reposdir
 
     List of directories to search for repo configuration files. Has a reasonable default commonly used on the given distribution.
+
+  .. attribute:: retries
+
+    Number of times any attempt to retrieve a file should retry before returning an error. Setting this to `0' makes it try forever. Defaults to `10'.
 
   .. attribute:: sslcacert
 

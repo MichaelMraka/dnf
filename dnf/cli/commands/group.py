@@ -398,9 +398,9 @@ class GroupCommand(commands.Command):
         self.cli.demands.resolving = True
         if cmd == 'install':
             if self.opts.with_optional:
-                types = tuple(dnf.const.GROUP_PACKAGE_TYPES + ('optional',))
+                types = tuple(self.base.conf.group_package_types + ('optional',))
             else:
-                types = dnf.const.GROUP_PACKAGE_TYPES
+                types = self.base.conf.group_package_types
 
             self._remark = True
             try:
@@ -416,7 +416,7 @@ class GroupCommand(commands.Command):
         if cmd == 'remove':
             return self.base.env_group_remove(extcmds)
 
-    def _run_transaction(self):
+    def run_transaction(self):
         if not self._remark:
             return
         goal = self.base._goal
