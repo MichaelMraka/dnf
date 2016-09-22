@@ -122,8 +122,10 @@ Requires:       python-libcomps >= %{libcomps_version}
 Requires:       python-librepo >= %{librepo_version}
 %if 0%{?rhel} && 0%{?rhel} <= 7
 Requires:       pygpgme
+Requires:       pygobject3
 %else
 Requires:       python2-pygpgme
+Requires:       python-gobject
 %endif
 Requires:       rpm-plugin-systemd-inhibit
 Requires:       rpm-python >= %{rpm_version}
@@ -150,6 +152,7 @@ BuildRequires:  rpm-python3 >= %{rpm_version}
 Recommends:     bash-completion
 Requires:       %{name}-conf = %{version}-%{release}
 Requires:       deltarpm
+Requires:       python3-gobject
 Requires:       python3-hawkey >= %{hawkey_version}
 Requires:       python3-iniparse
 Requires:       python3-libcomps >= %{libcomps_version}
